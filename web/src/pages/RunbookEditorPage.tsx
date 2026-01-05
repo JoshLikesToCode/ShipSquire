@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../services/api'
 import type { RunbookResponse, SectionResponse, SectionRequest } from '../types'
@@ -12,11 +12,7 @@ export default function RunbookEditorPage() {
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [sectionData, setSectionData] = useState<Record<string, string>>({})
 
-  useEffect(() => {
-    loadRunbook()
-  }, [runbookId])
-
-  const loadRunbook = async () => {
+  const loadRunbook = useCallback(async () => {
     if (!runbookId) return
     try {
       setLoading(true)
@@ -34,7 +30,11 @@ export default function RunbookEditorPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [runbookId])
+
+  useEffect(() => {
+    loadRunbook()
+  }, [loadRunbook])
 
   const handleSaveSection = async (section: SectionResponse) => {
     if (!runbookId) return

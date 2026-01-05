@@ -90,6 +90,12 @@ npm test
 
 # Build for production
 npm run build
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
 ```
 
 ### Database Management

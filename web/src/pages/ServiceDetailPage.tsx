@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../services/api'
 import type { ServiceResponse, RunbookResponse, RunbookRequest } from '../types'
@@ -15,11 +15,7 @@ export default function ServiceDetailPage() {
     summary: '',
   })
 
-  useEffect(() => {
-    loadData()
-  }, [serviceId])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!serviceId) return
     try {
       setLoading(true)
@@ -36,7 +32,11 @@ export default function ServiceDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [serviceId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
