@@ -24,10 +24,16 @@ public class UserRepository : Repository<User>, IUserRepository
         user = new User
         {
             Email = email,
-            DisplayName = email.Split('@')[0]
+            DisplayName = email.Split('@')[0],
+            AuthProvider = "email"
         };
 
         await AddAsync(user, cancellationToken);
         return user;
+    }
+
+    public async Task<User?> GetByGitHubUserIdAsync(string githubUserId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.FirstOrDefaultAsync(u => u.GitHubUserId == githubUserId, cancellationToken);
     }
 }

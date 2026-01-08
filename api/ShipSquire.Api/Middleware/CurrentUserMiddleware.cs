@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ShipSquire.Application.Interfaces;
 using ShipSquire.Domain.Interfaces;
 
@@ -14,12 +15,36 @@ public class CurrentUserMiddleware
 
     public async Task InvokeAsync(HttpContext context, IUserRepository userRepository)
     {
-        var email = context.Request.Headers["X-User-Email"].FirstOrDefault() ?? "josh@local";
+        Guid? userId = null;
+        string? email = null;
 
-        var user = await userRepository.GetOrCreateByEmailAsync(email);
+        // Priority 1: Check if user is authenticated via cookie
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var emailClaim = context.User.FindFirst(ClaimTypes.Email)?.Value;
 
-        var currentUser = new CurrentUser(user.Id, user.Email);
-        context.Items["CurrentUser"] = currentUser;
+            if (Guid.TryParse(userIdClaim, out var parsedUserId))
+            {
+                userId = parsedUserId;
+                email = emailClaim;
+            }
+        }
+
+        // Priority 2: Fall back to X-User-Email header (for backward compatibility and testing)
+        if (userId == null)
+        {
+            email = context.Request.Headers["X-User-Email"].FirstOrDefault() ?? "josh@local";
+            var user = await userRepository.GetOrCreateByEmailAsync(email);
+            userId = user.Id;
+            email = user.Email;
+        }
+
+        if (userId.HasValue && !string.IsNullOrEmpty(email))
+        {
+            var currentUser = new CurrentUser(userId.Value, email);
+            context.Items["CurrentUser"] = currentUser;
+        }
 
         await _next(context);
     }

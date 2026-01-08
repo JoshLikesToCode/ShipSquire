@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using ShipSquire.Api.Endpoints;
 using ShipSquire.Api.Middleware;
@@ -7,6 +8,7 @@ using ShipSquire.Domain.Entities;
 using ShipSquire.Domain.Interfaces;
 using ShipSquire.Infrastructure.Persistence;
 using ShipSquire.Infrastructure.Repositories;
+using ShipSquire.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,15 +16,37 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 
-// Add CORS
+// Authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "ShipSquire.Auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = 401;
+            return Task.CompletedTask;
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// Add CORS - Allow credentials for cookie authentication
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        var frontendUrl = builder.Configuration["Frontend:Url"] ?? "http://localhost:3000";
+        policy.WithOrigins(frontendUrl)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for cookies
     });
 });
 
@@ -47,6 +71,11 @@ builder.Services.AddScoped<RunbookService>();
 builder.Services.AddScoped<RunbookSectionService>();
 builder.Services.AddScoped<RunbookVariableService>();
 
+// Auth Services
+var encryptionKey = builder.Configuration["Encryption:Key"] ?? throw new InvalidOperationException("Encryption:Key not configured");
+builder.Services.AddSingleton<ITokenEncryptionService>(new TokenEncryptionService(encryptionKey));
+builder.Services.AddScoped<IGitHubOAuthService, GitHubOAuthService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -56,11 +85,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAll");
+app.UseCors("AllowFrontend");
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCurrentUser();
 
 // Map endpoints
 app.MapHealthEndpoints();
+app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapServiceEndpoints();
 app.MapRunbookEndpoints();

@@ -353,6 +353,15 @@ namespace ShipSquire.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("GitHubAccessToken")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GitHubUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GitHubUsername")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
