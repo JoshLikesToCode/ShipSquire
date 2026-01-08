@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using ShipSquire.Application.Services;
+using ShipSquire.Infrastructure.Services;
 
 namespace ShipSquire.Api.Endpoints;
 

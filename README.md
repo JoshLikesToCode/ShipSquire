@@ -152,6 +152,12 @@ web/
 ### Health
 - `GET /api/health` - Health check
 
+### Authentication
+- `GET /auth/github/login` - Initiate GitHub OAuth login
+- `GET /auth/github/callback` - GitHub OAuth callback
+- `POST /auth/logout` - Logout current user
+- `GET /auth/me` - Get current authenticated user
+
 ### Users
 - `GET /api/users/me` - Get current user
 
@@ -180,16 +186,73 @@ web/
 - `PATCH /api/runbooks/{runbookId}/variables/{variableId}` - Update variable
 - `DELETE /api/runbooks/{runbookId}/variables/{variableId}` - Delete variable
 
-## Current User Mechanism
+## Authentication
 
-For Week 1, user authentication is simplified:
+ShipSquire supports two authentication mechanisms:
+
+### GitHub OAuth (Production)
+
+**Priority 1:** Cookie-based authentication via GitHub OAuth
+
+1. **Register GitHub OAuth App**
+   - Go to https://github.com/settings/developers
+   - Click "New OAuth App"
+   - Fill in:
+     - **Application name:** ShipSquire (or your preferred name)
+     - **Homepage URL:** `http://localhost:3000` (or your domain)
+     - **Authorization callback URL:** `http://localhost:5000/auth/github/callback`
+   - Click "Register application"
+   - Copy the **Client ID** and generate a **Client Secret**
+
+2. **Configure Environment Variables**
+
+   Update `api/ShipSquire.Api/appsettings.json`:
+   ```json
+   {
+     "GitHub": {
+       "ClientId": "YOUR_GITHUB_CLIENT_ID",
+       "ClientSecret": "YOUR_GITHUB_CLIENT_SECRET",
+       "RedirectUri": "http://localhost:5000/auth/github/callback"
+     },
+     "Encryption": {
+       "Key": "generate-a-secure-32-character-key-for-production"
+     }
+   }
+   ```
+
+   Or use environment variables (recommended for production):
+   ```bash
+   export GitHub__ClientId="YOUR_GITHUB_CLIENT_ID"
+   export GitHub__ClientSecret="YOUR_GITHUB_CLIENT_SECRET"
+   export Encryption__Key="your-secure-encryption-key-32chars-minimum"
+   ```
+
+3. **OAuth Endpoints**
+   - `GET /auth/github/login` - Initiates GitHub OAuth flow
+   - `GET /auth/github/callback` - OAuth callback handler
+   - `POST /auth/logout` - Logs out current user
+   - `GET /auth/me` - Returns current authenticated user
+
+4. **How It Works**
+   - User clicks "Login with GitHub" button
+   - Redirected to GitHub authorization page
+   - GitHub redirects back with authorization code
+   - API exchanges code for access token
+   - User info fetched from GitHub API
+   - User created/updated in database (token encrypted at rest)
+   - Session cookie set (30-day expiration, HttpOnly, SameSite=Lax)
+
+### X-User-Email Header (Development/Testing)
+
+**Priority 2:** Header-based authentication for backward compatibility
 
 - API reads `X-User-Email` header from requests
 - If missing, defaults to `josh@local`
 - User is auto-created if it doesn't exist
 - All queries are scoped to the current user
+- Useful for testing, API clients, and development
 
-The web app sends `X-User-Email: josh@local` by default.
+The web app sends `X-User-Email: josh@local` by default when not authenticated via OAuth.
 
 ## Testing
 
@@ -217,7 +280,7 @@ See `.github/workflows/ci.yml`
 
 ### Core Entities
 
-- **User**: Email, DisplayName
+- **User**: Email, DisplayName, AuthProvider, GitHubUserId, GitHubUsername, GitHubAccessToken (encrypted)
 - **Service**: Name, Slug, Description, Repo info
 - **Runbook**: Title, Status, Version, Summary
 - **RunbookSection**: Key, Title, Order, BodyMarkdown
@@ -242,7 +305,7 @@ When a runbook is created, these sections are auto-seeded:
 
 ## Roadmap
 
-### Week 1 (Current)
+### Week 1 ✅
 - ✅ Services CRUD
 - ✅ Runbooks CRUD
 - ✅ Sections CRUD
@@ -250,10 +313,12 @@ When a runbook is created, these sections are auto-seeded:
 - ✅ Basic UI
 - ✅ Tests & CI
 
-### Week 2
-- GitHub OAuth authentication
-- Real user management
-- Service GitHub integration
+### Week 2 (Current)
+- ✅ GitHub OAuth authentication
+- ✅ Secure token storage (AES-256 encryption)
+- ✅ Cookie-based session management
+- ✅ Login/logout UI
+- Service GitHub integration (in progress)
 
 ### Week 3
 - Incidents UI

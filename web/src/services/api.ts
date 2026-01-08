@@ -13,6 +13,7 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include', // Include cookies for authentication
   })
 
   if (!response.ok) {
@@ -29,6 +30,10 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 export const api = {
   // Health
   health: () => fetchApi<{ status: string }>('/api/health'),
+
+  // Auth
+  getCurrentUser: () => fetchApi<any>('/auth/me'),
+  logout: () => fetchApi<void>('/auth/logout', { method: 'POST' }),
 
   // Services
   getServices: () => fetchApi<Array<any>>('/api/services'),
