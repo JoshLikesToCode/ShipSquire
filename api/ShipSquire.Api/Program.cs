@@ -26,9 +26,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+// Database - Prioritize DATABASE_URL env var (12-factor app), then fallback to appsettings
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Database=shipSquire;Username=postgres;Password=postgres";
 
 builder.Services.AddDbContext<ShipSquireDbContext>(options =>
