@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../services/api'
 import type { ServiceResponse, RunbookResponse, RunbookRequest } from '../types'
+import RepoPickerModal from '../components/RepoPickerModal'
 
 export default function ServiceDetailPage() {
   const { serviceId } = useParams<{ serviceId: string }>()
@@ -10,6 +11,7 @@ export default function ServiceDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [showRepoModal, setShowRepoModal] = useState(false)
   const [formData, setFormData] = useState<RunbookRequest>({
     title: '',
     summary: '',
@@ -63,6 +65,24 @@ export default function ServiceDetailPage() {
     }
   }
 
+  const handleRepoSelect = async (repo: any) => {
+    if (!serviceId) return
+    try {
+      await api.linkRepoToService(serviceId, {
+        provider: 'github',
+        owner: repo.owner.login,
+        name: repo.name,
+        url: repo.html_url,
+        defaultBranch: repo.default_branch,
+        primaryLanguage: repo.language,
+      })
+      loadData()
+    } catch (err) {
+      setError('Failed to link repository')
+      console.error(err)
+    }
+  }
+
   if (loading) return <div className="loading">Loading...</div>
   if (!service) return <div className="error">Service not found</div>
 
@@ -72,6 +92,34 @@ export default function ServiceDetailPage() {
         <div>
           <h2>{service.name}</h2>
           <p>{service.description}</p>
+          {service.repo ? (
+            <div className="repo-info" style={{ marginTop: '0.5rem' }}>
+              <strong>Repository:</strong>{' '}
+              <a href={service.repo.url} target="_blank" rel="noopener noreferrer" className="link">
+                {service.repo.owner}/{service.repo.name}
+              </a>
+              {service.repo.primaryLanguage && (
+                <span style={{ marginLeft: '1rem', color: '#7f8c8d' }}>
+                  {service.repo.primaryLanguage}
+                </span>
+              )}
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowRepoModal(true)}
+                style={{ marginLeft: '1rem', padding: '0.25rem 0.5rem', fontSize: '0.9rem' }}
+              >
+                Change Repo
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowRepoModal(true)}
+              style={{ marginTop: '0.5rem' }}
+            >
+              Connect Repository
+            </button>
+          )}
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
           {showForm ? 'Cancel' : '+ New Runbook'}
@@ -129,6 +177,12 @@ export default function ServiceDetailPage() {
           ))
         )}
       </div>
+
+      <RepoPickerModal
+        isOpen={showRepoModal}
+        onClose={() => setShowRepoModal(false)}
+        onSelect={handleRepoSelect}
+      />
     </div>
   )
 }

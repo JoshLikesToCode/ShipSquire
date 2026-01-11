@@ -8,6 +8,8 @@ export interface ServiceResponse {
     owner?: string
     name?: string
     url?: string
+    defaultBranch?: string
+    primaryLanguage?: string
   }
   createdAt: string
   updatedAt: string
@@ -22,6 +24,8 @@ export interface ServiceRequest {
     owner?: string
     name?: string
     url?: string
+    defaultBranch?: string
+    primaryLanguage?: string
   }
 }
 

@@ -54,5 +54,15 @@ public static class ServiceEndpoints
         .WithTags("Services")
         .Produces(204)
         .Produces(404);
+
+        app.MapPatch("/api/services/{serviceId:guid}/link-repo", async (Guid serviceId, LinkRepoRequest request, ServiceService service) =>
+        {
+            var result = await service.LinkRepoAsync(serviceId, request);
+            return result == null ? Results.NotFound() : Results.Ok(result);
+        })
+        .WithName("LinkRepositoryToService")
+        .WithTags("Services")
+        .Produces<ServiceResponse>(200)
+        .Produces(404);
     }
 }

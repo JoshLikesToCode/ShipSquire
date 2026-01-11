@@ -1,4 +1,4 @@
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import ServiceListPage from './pages/ServiceListPage'
 import ServiceDetailPage from './pages/ServiceDetailPage'
@@ -8,6 +8,7 @@ import { api } from './services/api'
 
 function App() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -20,8 +21,11 @@ function App() {
       const currentUser = await api.getCurrentUser()
       setUser(currentUser)
     } catch (err) {
-      // Not authenticated - that's okay, we'll show login page
+      // Not authenticated - redirect to login unless already there
       setUser(null)
+      if (location.pathname !== '/login') {
+        navigate('/login')
+      }
     } finally {
       setLoading(false)
     }

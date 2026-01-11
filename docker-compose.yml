@@ -24,6 +24,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - DATABASE_URL=Host=postgres;Database=shipSquire;Username=postgres;Password=postgres
+      - GitHub__ClientId=Ov23livsceuig0qRgFzK
+      - GitHub__ClientSecret=95def54cf4b02281e0a1265ea2a07f9c6e72df24
     ports:
       - "5000:5000"
     depends_on:

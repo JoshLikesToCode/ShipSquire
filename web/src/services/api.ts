@@ -92,4 +92,11 @@ export const api = {
       method: 'DELETE',
     }
   ),
+
+  // GitHub
+  getGitHubRepos: (page = 1, perPage = 30) => fetchApi<Array<any>>(`/api/github/repos?page=${page}&perPage=${perPage}`),
+  linkRepoToService: (serviceId: string, data: any) => fetchApi<any>(`/api/services/${serviceId}/link-repo`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
 }

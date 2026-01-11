@@ -39,7 +39,9 @@ public class ServiceService
             RepoProvider = request.Repo?.Provider,
             RepoOwner = request.Repo?.Owner,
             RepoName = request.Repo?.Name,
-            RepoUrl = request.Repo?.Url
+            RepoUrl = request.Repo?.Url,
+            DefaultBranch = request.Repo?.DefaultBranch,
+            PrimaryLanguage = request.Repo?.PrimaryLanguage
         };
 
         await _serviceRepository.AddAsync(service, cancellationToken);
@@ -58,6 +60,8 @@ public class ServiceService
         service.RepoOwner = request.Repo?.Owner;
         service.RepoName = request.Repo?.Name;
         service.RepoUrl = request.Repo?.Url;
+        service.DefaultBranch = request.Repo?.DefaultBranch;
+        service.PrimaryLanguage = request.Repo?.PrimaryLanguage;
         service.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _serviceRepository.UpdateAsync(service, cancellationToken);
@@ -73,6 +77,23 @@ public class ServiceService
         return true;
     }
 
+    public async Task<ServiceResponse?> LinkRepoAsync(Guid id, LinkRepoRequest request, CancellationToken cancellationToken = default)
+    {
+        var service = await _serviceRepository.GetByIdAndUserIdAsync(id, _currentUser.UserId, cancellationToken);
+        if (service == null) return null;
+
+        service.RepoProvider = request.Provider;
+        service.RepoOwner = request.Owner;
+        service.RepoName = request.Name;
+        service.RepoUrl = request.Url;
+        service.DefaultBranch = request.DefaultBranch;
+        service.PrimaryLanguage = request.PrimaryLanguage;
+        service.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _serviceRepository.UpdateAsync(service, cancellationToken);
+        return MapToResponse(service);
+    }
+
     private static ServiceResponse MapToResponse(Service service)
     {
         ServiceRepoInfo? repo = null;
@@ -82,7 +103,9 @@ public class ServiceService
                 service.RepoProvider,
                 service.RepoOwner,
                 service.RepoName,
-                service.RepoUrl
+                service.RepoUrl,
+                service.DefaultBranch,
+                service.PrimaryLanguage
             );
         }
 

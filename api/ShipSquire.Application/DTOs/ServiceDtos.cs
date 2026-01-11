@@ -11,7 +11,18 @@ public record ServiceRepoInfo(
     string? Provider,
     string? Owner,
     string? Name,
-    string? Url
+    string? Url,
+    string? DefaultBranch,
+    string? PrimaryLanguage
+);
+
+public record LinkRepoRequest(
+    string Provider,
+    string Owner,
+    string Name,
+    string Url,
+    string DefaultBranch,
+    string? PrimaryLanguage
 );
 
 public record ServiceResponse(

@@ -75,6 +75,7 @@ builder.Services.AddScoped<RunbookVariableService>();
 var encryptionKey = builder.Configuration["Encryption:Key"] ?? throw new InvalidOperationException("Encryption:Key not configured");
 builder.Services.AddSingleton<ITokenEncryptionService>(new TokenEncryptionService(encryptionKey));
 builder.Services.AddScoped<IGitHubOAuthService, GitHubOAuthService>();
+builder.Services.AddScoped<IGitHubApiClient, GitHubApiClient>();
 
 var app = builder.Build();
 
@@ -93,6 +94,7 @@ app.UseCurrentUser();
 // Map endpoints
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
+app.MapGitHubEndpoints();
 app.MapUserEndpoints();
 app.MapServiceEndpoints();
 app.MapRunbookEndpoints();
