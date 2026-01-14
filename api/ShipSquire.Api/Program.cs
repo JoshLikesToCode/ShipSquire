@@ -76,6 +76,7 @@ var encryptionKey = builder.Configuration["Encryption:Key"] ?? throw new Invalid
 builder.Services.AddSingleton<ITokenEncryptionService>(new TokenEncryptionService(encryptionKey));
 builder.Services.AddScoped<IGitHubOAuthService, GitHubOAuthService>();
 builder.Services.AddScoped<IGitHubApiClient, GitHubApiClient>();
+builder.Services.AddScoped<IRepoAnalyzer, GitHubRepoAnalyzer>();
 
 var app = builder.Build();
 

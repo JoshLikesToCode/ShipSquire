@@ -30,3 +30,29 @@ public record GitHubRepositoryResponse(
 public record GitHubRepositoryOwner(
     string login
 );
+
+public record GitHubTreeResponse(
+    string sha,
+    string url,
+    List<GitHubTreeItem> tree,
+    bool truncated
+);
+
+public record GitHubTreeItem(
+    string path,
+    string mode,
+    string type, // "blob" or "tree"
+    string sha,
+    long? size,
+    string? url
+);
+
+public record GitHubFileContentResponse(
+    string name,
+    string path,
+    string sha,
+    long size,
+    string url,
+    string? content, // Base64 encoded
+    string encoding
+);

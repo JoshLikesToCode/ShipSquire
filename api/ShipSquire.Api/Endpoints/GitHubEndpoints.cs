@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ShipSquire.Application.DTOs;
 using ShipSquire.Application.Interfaces;
 using ShipSquire.Domain.Interfaces;
 using ShipSquire.Infrastructure.Services;
@@ -56,6 +57,64 @@ public static class GitHubEndpoints
         .Produces(200)
         .Produces(400)
         .Produces(404)
+        .Produces(502);
+
+        // Analyze a GitHub repository
+        app.MapPost("/api/github/analyze", async (
+            RepoAnalysisRequest request,
+            ICurrentUser currentUser,
+            IUserRepository userRepository,
+            IRepoAnalyzer analyzer,
+            CancellationToken cancellationToken = default) =>
+        {
+            var userId = currentUser.UserId;
+            var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+
+            if (user == null)
+            {
+                return Results.NotFound(new { error = "User not found" });
+            }
+
+            if (string.IsNullOrEmpty(user.GitHubAccessToken))
+            {
+                return Results.BadRequest(new { error = "GitHub account not linked. Please log in with GitHub." });
+            }
+
+            try
+            {
+                var result = await analyzer.AnalyzeRepositoryAsync(
+                    user.GitHubAccessToken,
+                    request.Owner,
+                    request.Repo,
+                    request.Branch,
+                    cancellationToken
+                );
+
+                return Results.Ok(result);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Results.Problem(
+                    title: "Failed to analyze repository from GitHub",
+                    detail: ex.Message,
+                    statusCode: 502
+                );
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Failed to analyze repository",
+                    detail: ex.Message,
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("AnalyzeGitHubRepository")
+        .WithTags("GitHub")
+        .Produces<RepoAnalysisResult>(200)
+        .Produces(400)
+        .Produces(404)
+        .Produces(500)
         .Produces(502);
     }
 }
