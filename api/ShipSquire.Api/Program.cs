@@ -70,6 +70,7 @@ builder.Services.AddScoped<ServiceService>();
 builder.Services.AddScoped<RunbookService>();
 builder.Services.AddScoped<RunbookSectionService>();
 builder.Services.AddScoped<RunbookVariableService>();
+builder.Services.AddScoped<IRunbookDraftGenerator, RunbookDraftGenerator>();
 
 // Auth Services
 var encryptionKey = builder.Configuration["Encryption:Key"] ?? throw new InvalidOperationException("Encryption:Key not configured");

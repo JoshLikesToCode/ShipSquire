@@ -149,6 +149,34 @@ public class RunbookEndpointsTests : IClassFixture<TestWebApplicationFactory>
         refreshedSection.BodyMarkdown.Should().Be(newContent);
     }
 
+    [Fact]
+    public async Task GenerateDraft_WithoutGitHubRepo_ShouldReturnBadRequest()
+    {
+        // Arrange - Create service without GitHub repo
+        var service = await CreateTestService("No Repo Service", "no-repo-service");
+
+        // Act
+        var response = await _client.PostAsync($"/api/services/{service.Id}/runbooks/draft", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("GitHub repository");
+    }
+
+    [Fact]
+    public async Task GenerateDraft_WithNonExistentService_ShouldReturnNotFound()
+    {
+        // Arrange
+        var fakeServiceId = Guid.NewGuid();
+
+        // Act
+        var response = await _client.PostAsync($"/api/services/{fakeServiceId}/runbooks/draft", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task<ServiceResponse> CreateTestService(string name, string slug)
     {
         var request = new ServiceRequest(name, slug, null, null);

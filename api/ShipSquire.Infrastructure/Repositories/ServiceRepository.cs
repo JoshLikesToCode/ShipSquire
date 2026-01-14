@@ -24,4 +24,11 @@ public class ServiceRepository : Repository<Service>, IServiceRepository
         return await _dbSet
             .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId, cancellationToken);
     }
+
+    public async Task<Service?> GetByIdWithUserAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId, cancellationToken);
+    }
 }
