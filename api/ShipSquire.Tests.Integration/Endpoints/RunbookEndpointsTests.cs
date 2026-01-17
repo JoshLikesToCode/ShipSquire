@@ -177,6 +177,73 @@ public class RunbookEndpointsTests : IClassFixture<TestWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task GenerateRunbook_WithoutRepo_ShouldReturnBadRequest()
+    {
+        // Arrange - Create service without GitHub repo
+        var service = await CreateTestService("No Repo Service Generate", "no-repo-service-generate");
+
+        // Act
+        var response = await _client.PostAsync($"/api/services/{service.Id}/runbooks/generate", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("GitHub repository");
+    }
+
+    [Fact]
+    public async Task GenerateRunbook_WithNonExistentService_ShouldReturnNotFound()
+    {
+        // Arrange
+        var fakeServiceId = Guid.NewGuid();
+
+        // Act
+        var response = await _client.PostAsync($"/api/services/{fakeServiceId}/runbooks/generate", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task CreateRunbook_ShouldHaveManualOrigin()
+    {
+        // Arrange - Create a service
+        var service = await CreateTestService("Manual Origin Test", "manual-origin-test");
+
+        var runbookRequest = new RunbookRequest(
+            Title: "Manual Runbook",
+            Summary: "Created manually"
+        );
+
+        // Act
+        var response = await _client.PostAsJsonAsync($"/api/services/{service.Id}/runbooks", runbookRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var runbook = await response.Content.ReadFromJsonAsync<RunbookResponse>();
+        runbook.Should().NotBeNull();
+        runbook!.Origin.Should().Be("manual");
+        runbook.Analysis.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetRunbook_ShouldIncludeOriginField()
+    {
+        // Arrange - Create service and runbook
+        var service = await CreateTestService("Origin Test Service", "origin-test-service");
+        var runbook = await CreateTestRunbook(service.Id, "Origin Test Runbook");
+
+        // Act
+        var response = await _client.GetAsync($"/api/runbooks/{runbook.Id}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var fetched = await response.Content.ReadFromJsonAsync<RunbookResponse>();
+        fetched.Should().NotBeNull();
+        fetched!.Origin.Should().Be("manual");
+    }
+
     private async Task<ServiceResponse> CreateTestService(string name, string slug)
     {
         var request = new ServiceRequest(name, slug, null, null);

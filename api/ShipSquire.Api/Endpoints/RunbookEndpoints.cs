@@ -79,6 +79,90 @@ public static class RunbookEndpoints
         .Produces(500)
         .Produces(502);
 
+        // Generate and create a runbook from repository analysis
+        app.MapPost("/api/services/{serviceId:guid}/runbooks/generate", async (
+            Guid serviceId,
+            ICurrentUser currentUser,
+            IServiceRepository serviceRepository,
+            IRepoAnalyzer repoAnalyzer,
+            IRunbookDraftGenerator draftGenerator,
+            RunbookService runbookService,
+            CancellationToken cancellationToken = default) =>
+        {
+            // Get service with User navigation loaded
+            var service = await serviceRepository.GetByIdWithUserAsync(serviceId, currentUser.UserId, cancellationToken);
+
+            if (service == null)
+            {
+                return Results.NotFound(new { message = "Service not found" });
+            }
+
+            // Ensure service has GitHub repository linked
+            if (string.IsNullOrEmpty(service.RepoOwner) || string.IsNullOrEmpty(service.RepoName))
+            {
+                return Results.BadRequest(new { message = "Service does not have a GitHub repository linked" });
+            }
+
+            // Ensure user has GitHub token
+            if (string.IsNullOrEmpty(service.User.GitHubAccessToken))
+            {
+                return Results.BadRequest(new { message = "GitHub account not linked. Please log in with GitHub." });
+            }
+
+            try
+            {
+                // Analyze repository
+                var analysis = await repoAnalyzer.AnalyzeRepositoryAsync(
+                    service.User.GitHubAccessToken,
+                    service.RepoOwner,
+                    service.RepoName,
+                    service.DefaultBranch,
+                    cancellationToken);
+
+                // Generate draft sections
+                var sections = draftGenerator.GenerateDraft(service, analysis);
+
+                // Create the runbook with generated content
+                var title = $"{service.Name} Runbook";
+                var result = await runbookService.CreateFromDraftAsync(
+                    serviceId,
+                    title,
+                    sections,
+                    analysis,
+                    cancellationToken);
+
+                if (result == null)
+                {
+                    return Results.NotFound(new { message = "Failed to create runbook" });
+                }
+
+                return Results.Created($"/api/runbooks/{result.Id}", result);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Results.Problem(
+                    title: "Failed to analyze repository from GitHub",
+                    detail: ex.Message,
+                    statusCode: 502
+                );
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    title: "Failed to generate runbook",
+                    detail: ex.Message,
+                    statusCode: 500
+                );
+            }
+        })
+        .WithName("GenerateRunbook")
+        .WithTags("Runbooks")
+        .Produces<RunbookResponse>(201)
+        .Produces(400)
+        .Produces(404)
+        .Produces(500)
+        .Produces(502);
+
         // Get runbooks for a service
         app.MapGet("/api/services/{serviceId:guid}/runbooks", async (Guid serviceId, RunbookService service) =>
         {

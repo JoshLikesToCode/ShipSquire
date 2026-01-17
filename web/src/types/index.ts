@@ -29,6 +29,20 @@ export interface ServiceRequest {
   }
 }
 
+export interface RepoAnalysisResult {
+  hasDockerfile: boolean
+  hasCompose: boolean
+  hasKubernetes: boolean
+  hasGithubActions: boolean
+  detectedPorts: number[]
+  appType: string
+  hasReadme: boolean
+  hasLaunchSettings: boolean
+  hasCsproj: boolean
+  primaryLanguage?: string
+  technologyStack?: string[]
+}
+
 export interface RunbookResponse {
   id: string
   serviceId: string
@@ -36,6 +50,8 @@ export interface RunbookResponse {
   status: string
   version: number
   summary?: string
+  origin: string
+  analysis?: RepoAnalysisResult
   sections: SectionResponse[]
   variables: VariableResponse[]
   createdAt: string

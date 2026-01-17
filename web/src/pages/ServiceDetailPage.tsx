@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../services/api'
 import type { ServiceResponse, RunbookResponse, RunbookRequest } from '../types'
 import RepoPickerModal from '../components/RepoPickerModal'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function ServiceDetailPage() {
   const { serviceId } = useParams<{ serviceId: string }>()
@@ -12,6 +13,9 @@ export default function ServiceDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [showRepoModal, setShowRepoModal] = useState(false)
+  const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
   const [formData, setFormData] = useState<RunbookRequest>({
     title: '',
     summary: '',
@@ -83,6 +87,32 @@ export default function ServiceDetailPage() {
     }
   }
 
+  const handleGenerateClick = () => {
+    if (runbooks.length > 0) {
+      setShowGenerateModal(true)
+    } else {
+      handleGenerateConfirm()
+    }
+  }
+
+  const handleGenerateConfirm = async () => {
+    if (!serviceId) return
+    setGenerating(true)
+    setGenerateError(null)
+    try {
+      await api.generateRunbook(serviceId)
+      setShowGenerateModal(false)
+      loadData()
+    } catch (err: any) {
+      setGenerateError(err.message || 'Failed to generate runbook')
+      console.error(err)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const hasRepoLinked = !!(service?.repo?.owner && service?.repo?.name)
+
   if (loading) return <div className="loading">Loading...</div>
   if (!service) return <div className="error">Service not found</div>
 
@@ -121,12 +151,23 @@ export default function ServiceDetailPage() {
             </button>
           )}
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ New Runbook'}
-        </button>
+        <div className="header-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={handleGenerateClick}
+            disabled={!hasRepoLinked || generating}
+            title={!hasRepoLinked ? 'Connect a repository to generate a draft' : undefined}
+          >
+            {generating ? 'Generating...' : 'Generate Draft'}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            {showForm ? 'Cancel' : '+ New Runbook'}
+          </button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
+      {generateError && <div className="error">{generateError}</div>}
 
       {showForm && (
         <form className="form" onSubmit={handleSubmit}>
@@ -167,6 +208,11 @@ export default function ServiceDetailPage() {
                 <Link to={`/runbooks/${runbook.id}`} className="link">
                   {runbook.title}
                 </Link>
+                {runbook.origin && (
+                  <span className={`badge badge-${runbook.origin}`}>
+                    {runbook.origin === 'generated' ? 'Generated' : 'Manual'}
+                  </span>
+                )}
               </h3>
               <p>Status: {runbook.status} | Version: {runbook.version}</p>
               {runbook.summary && <p>{runbook.summary}</p>}
@@ -182,6 +228,17 @@ export default function ServiceDetailPage() {
         isOpen={showRepoModal}
         onClose={() => setShowRepoModal(false)}
         onSelect={handleRepoSelect}
+      />
+
+      <ConfirmModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        onConfirm={handleGenerateConfirm}
+        title="Generate New Runbook"
+        message="This service already has runbooks. Generating a new draft will create an additional runbook. Do you want to continue?"
+        loading={generating}
+        confirmText="Generate"
+        cancelText="Cancel"
       />
     </div>
   )

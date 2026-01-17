@@ -10,6 +10,8 @@ public class Runbook : BaseEntity
     public string Status { get; set; } = "draft";
     public int Version { get; set; } = 1;
     public string? Summary { get; set; }
+    public string Origin { get; set; } = "manual";  // "manual" or "generated"
+    public string? AnalysisSnapshot { get; set; }   // JSON of RepoAnalysisResult
 
     // Navigation properties
     public User User { get; set; } = null!;

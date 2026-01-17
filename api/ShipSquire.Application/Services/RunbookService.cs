@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ShipSquire.Application.DTOs;
 using ShipSquire.Application.Interfaces;
 using ShipSquire.Domain.Entities;
@@ -109,8 +110,64 @@ public class RunbookService
         return true;
     }
 
+    public async Task<RunbookResponse?> CreateFromDraftAsync(
+        Guid serviceId,
+        string title,
+        List<RunbookSectionDraft> sections,
+        RepoAnalysisResult analysis,
+        CancellationToken cancellationToken = default)
+    {
+        // Verify service ownership
+        var service = await _serviceRepository.GetByIdAndUserIdAsync(serviceId, _currentUser.UserId, cancellationToken);
+        if (service == null) return null;
+
+        var runbook = new Runbook
+        {
+            UserId = _currentUser.UserId,
+            ServiceId = serviceId,
+            Title = title,
+            Summary = $"Auto-generated runbook for {service.Name}",
+            Status = "draft",
+            Version = 1,
+            Origin = "generated",
+            AnalysisSnapshot = JsonSerializer.Serialize(analysis)
+        };
+
+        // Add generated sections
+        foreach (var sectionDraft in sections)
+        {
+            runbook.Sections.Add(new RunbookSection
+            {
+                RunbookId = runbook.Id,
+                Key = sectionDraft.Key,
+                Title = sectionDraft.Title,
+                Order = sectionDraft.Order,
+                BodyMarkdown = sectionDraft.BodyMarkdown
+            });
+        }
+
+        await _runbookRepository.AddAsync(runbook, cancellationToken);
+
+        // Reload with details
+        var created = await _runbookRepository.GetByIdWithDetailsAsync(runbook.Id, cancellationToken);
+        return created == null ? null : MapToResponse(created);
+    }
+
     private static RunbookResponse MapToResponse(Runbook runbook)
     {
+        RepoAnalysisResult? analysis = null;
+        if (!string.IsNullOrEmpty(runbook.AnalysisSnapshot))
+        {
+            try
+            {
+                analysis = JsonSerializer.Deserialize<RepoAnalysisResult>(runbook.AnalysisSnapshot);
+            }
+            catch
+            {
+                // Ignore deserialization errors
+            }
+        }
+
         return new RunbookResponse(
             runbook.Id,
             runbook.ServiceId,
@@ -118,6 +175,8 @@ public class RunbookService
             runbook.Status,
             runbook.Version,
             runbook.Summary,
+            runbook.Origin,
+            analysis,
             runbook.Sections.OrderBy(s => s.Order).Select(s => new SectionResponse(
                 s.Id,
                 s.Key,

@@ -380,11 +380,80 @@ docker exec -it shipSquire-postgres psql -U postgres -d shipSquire
 \d "Services"
 ```
 
+## GitHub Repository Integration
+
+### Linking Repositories
+
+Services can be linked to GitHub repositories to enable repository analysis and draft runbook generation.
+
+**Service Repository Fields:**
+- `RepoProvider`: Always "github" for now
+- `RepoOwner`: GitHub username or organization
+- `RepoName`: Repository name
+- `RepoUrl`: Full GitHub URL
+- `DefaultBranch`: The default branch (usually "main" or "master")
+- `PrimaryLanguage`: Detected primary programming language
+
+**API Endpoints:**
+- `PATCH /api/services/{id}/link-repo` - Link a repository to a service
+- `GET /api/github/repos` - List user's GitHub repositories
+
+### Draft Generation Rules
+
+**Runbook Origin Values:**
+- `manual` - Created by user through the UI (default)
+- `generated` - Created by the draft generation process
+
+**Generation Behavior:**
+- Generation **always creates a new runbook**, never overwrites existing ones
+- Generated runbooks store the analysis snapshot for reference
+- User must have a linked GitHub account with a valid token
+- Service must have a linked repository
+
+**Analysis Snapshot:**
+The `AnalysisSnapshot` field stores JSON of `RepoAnalysisResult`:
+- `HasDockerfile`, `HasCompose`, `HasKubernetes` - Infrastructure detection
+- `HasGithubActions` - CI/CD detection
+- `DetectedPorts` - Exposed ports found in Dockerfile/compose
+- `AppType` - "aspnet", "node", "mixed", "unknown"
+- `PrimaryLanguage`, `TechnologyStack` - Language/framework detection
+
+**API Endpoints:**
+- `POST /api/services/{id}/runbooks/draft` - Preview draft sections (returns `RunbookDraftResult`)
+- `POST /api/services/{id}/runbooks/generate` - Generate and save a new runbook (returns `RunbookResponse`)
+
+## Modal Patterns
+
+### ConfirmModal Component
+
+A reusable confirmation modal for actions that require user confirmation.
+
+**Props:**
+```typescript
+interface ConfirmModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  message: string
+  loading?: boolean       // Disables buttons and shows loading state
+  confirmText?: string    // Default: "Confirm"
+  cancelText?: string     // Default: "Cancel"
+}
+```
+
+**Usage Patterns:**
+1. **Destructive actions**: Use for delete confirmations
+2. **Potentially duplicate actions**: Use when action might create duplicates (e.g., generating a runbook when runbooks already exist)
+3. **Expensive operations**: Use for operations that take significant time/resources
+
+**CSS Classes:**
+- `.modal-confirm` - Applies narrower width for confirmation modals
+- `.modal-actions` - Flex container for modal action buttons
+- `.badge-generated` / `.badge-manual` - Origin badges for runbooks
+
 ## Next Steps (Week 2+)
 
-- Implement GitHub OAuth
-- Add user profile management
-- Integrate with GitHub API for repo metadata
 - Enhanced incident management UI
 - Timeline entries for incidents
 - Postmortem workflows

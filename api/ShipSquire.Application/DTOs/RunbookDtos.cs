@@ -12,6 +12,8 @@ public record RunbookResponse(
     string Status,
     int Version,
     string? Summary,
+    string Origin,
+    RepoAnalysisResult? Analysis,
     List<SectionResponse> Sections,
     List<VariableResponse> Variables,
     DateTimeOffset CreatedAt,

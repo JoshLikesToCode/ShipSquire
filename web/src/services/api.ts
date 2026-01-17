@@ -56,6 +56,9 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  generateRunbook: (serviceId: string) => fetchApi<any>(`/api/services/${serviceId}/runbooks/generate`, {
+    method: 'POST',
+  }),
   getRunbook: (id: string) => fetchApi<any>(`/api/runbooks/${id}`),
   updateRunbook: (id: string, data: any) => fetchApi<any>(`/api/runbooks/${id}`, {
     method: 'PATCH',

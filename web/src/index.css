@@ -344,3 +344,56 @@ body {
   padding: 1rem;
   color: #c33;
 }
+
+/* Origin badges */
+.badge-generated {
+  display: inline-block;
+  background: #9b59b6;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: normal;
+}
+
+.badge-manual {
+  display: inline-block;
+  background: #3498db;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: normal;
+}
+
+/* Confirm modal */
+.modal-confirm {
+  max-width: 450px;
+}
+
+.modal-confirm .modal-body p {
+  color: #555;
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #ddd;
+}
+
+/* Header actions */
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Disabled button state */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
