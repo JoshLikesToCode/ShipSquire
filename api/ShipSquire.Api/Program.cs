@@ -63,6 +63,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IRunbookRepository, RunbookRepository>();
 builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
+builder.Services.AddScoped<ITimelineEntryRepository, TimelineEntryRepository>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 // Application Services
@@ -72,6 +73,7 @@ builder.Services.AddScoped<RunbookService>();
 builder.Services.AddScoped<RunbookSectionService>();
 builder.Services.AddScoped<RunbookVariableService>();
 builder.Services.AddScoped<IncidentService>();
+builder.Services.AddScoped<TimelineEntryService>();
 builder.Services.AddScoped<IRunbookDraftGenerator, RunbookDraftGenerator>();
 
 // Auth Services
@@ -105,6 +107,7 @@ app.MapRunbookEndpoints();
 app.MapRunbookSectionEndpoints();
 app.MapRunbookVariableEndpoints();
 app.MapIncidentEndpoints();
+app.MapTimelineEndpoints();
 
 // Run migrations on startup (only for relational databases)
 using (var scope = app.Services.CreateScope())
