@@ -32,4 +32,22 @@ public class RunbookRepository : Repository<Runbook>, IRunbookRepository
         return await _dbSet
             .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, cancellationToken);
     }
+
+    public async Task<Runbook?> GetLatestForServiceAsync(Guid serviceId, CancellationToken cancellationToken = default)
+    {
+        // First try to find the latest published runbook
+        var published = await _dbSet
+            .Where(r => r.ServiceId == serviceId && r.Status == "published")
+            .OrderByDescending(r => r.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (published != null)
+            return published;
+
+        // Fallback to the latest draft runbook
+        return await _dbSet
+            .Where(r => r.ServiceId == serviceId)
+            .OrderByDescending(r => r.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 }

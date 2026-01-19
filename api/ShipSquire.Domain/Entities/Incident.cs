@@ -1,4 +1,5 @@
 using ShipSquire.Domain.Common;
+using ShipSquire.Domain.Enums;
 
 namespace ShipSquire.Domain.Entities;
 
@@ -8,9 +9,9 @@ public class Incident : BaseEntity
     public Guid ServiceId { get; set; }
     public Guid? RunbookId { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string Severity { get; set; } = "sev3";
-    public string Status { get; set; } = "open";
-    public DateTimeOffset StartedAt { get; set; }
+    public string Severity { get; set; } = IncidentSeverity.Sev3;
+    public string Status { get; set; } = IncidentStatus.Open;
+    public DateTimeOffset StartedAt { get; set; }  // Required - when incident started
     public DateTimeOffset? EndedAt { get; set; }
     public string? SummaryMarkdown { get; set; }
 
