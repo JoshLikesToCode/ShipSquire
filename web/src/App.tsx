@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import ServiceListPage from './pages/ServiceListPage'
 import ServiceDetailPage from './pages/ServiceDetailPage'
 import RunbookEditorPage from './pages/RunbookEditorPage'
+import IncidentDetailPage from './pages/IncidentDetailPage'
 import LoginPage from './pages/LoginPage'
 import { api } from './services/api'
 
@@ -80,6 +81,7 @@ function App() {
                   <Route path="/services" element={<ServiceListPage />} />
                   <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
                   <Route path="/runbooks/:runbookId" element={<RunbookEditorPage />} />
+                  <Route path="/incidents/:incidentId" element={<IncidentDetailPage />} />
                 </Routes>
               </main>
             </>

@@ -102,4 +102,26 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
+
+  // Incidents
+  getServiceIncidents: (serviceId: string) => fetchApi<Array<any>>(`/api/services/${serviceId}/incidents`),
+  createIncident: (serviceId: string, data: any) => fetchApi<any>(`/api/services/${serviceId}/incidents`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getIncident: (id: string) => fetchApi<any>(`/api/incidents/${id}`),
+  updateIncident: (id: string, data: any) => fetchApi<any>(`/api/incidents/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
+  deleteIncident: (id: string) => fetchApi<void>(`/api/incidents/${id}`, {
+    method: 'DELETE',
+  }),
+
+  // Timeline
+  getIncidentTimeline: (incidentId: string) => fetchApi<Array<any>>(`/api/incidents/${incidentId}/timeline`),
+  addTimelineEntry: (incidentId: string, data: any) => fetchApi<any>(`/api/incidents/${incidentId}/timeline`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 }

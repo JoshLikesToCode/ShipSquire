@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../services/api'
-import type { ServiceResponse, RunbookResponse, RunbookRequest } from '../types'
+import type { ServiceResponse, RunbookResponse, RunbookRequest, IncidentResponse, IncidentRequest } from '../types'
+import { IncidentSeverity, IncidentStatus } from '../types'
 import RepoPickerModal from '../components/RepoPickerModal'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -20,17 +21,26 @@ export default function ServiceDetailPage() {
     title: '',
     summary: '',
   })
+  const [incidents, setIncidents] = useState<IncidentResponse[]>([])
+  const [showIncidentForm, setShowIncidentForm] = useState(false)
+  const [incidentFormData, setIncidentFormData] = useState<IncidentRequest>({
+    title: '',
+    severity: IncidentSeverity.Sev3,
+    startedAt: new Date().toISOString(),
+  })
 
   const loadData = useCallback(async () => {
     if (!serviceId) return
     try {
       setLoading(true)
-      const [svcData, rbData] = await Promise.all([
+      const [svcData, rbData, incData] = await Promise.all([
         api.getService(serviceId),
         api.getServiceRunbooks(serviceId),
+        api.getServiceIncidents(serviceId),
       ])
       setService(svcData)
       setRunbooks(rbData)
+      setIncidents(incData)
       setError(null)
     } catch (err) {
       setError('Failed to load data')
@@ -109,6 +119,44 @@ export default function ServiceDetailPage() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handleIncidentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!serviceId) return
+    try {
+      await api.createIncident(serviceId, incidentFormData)
+      setIncidentFormData({ title: '', severity: IncidentSeverity.Sev3, startedAt: new Date().toISOString() })
+      setShowIncidentForm(false)
+      loadData()
+    } catch (err) {
+      setError('Failed to create incident')
+      console.error(err)
+    }
+  }
+
+  const getSeverityClass = (severity: string) => {
+    switch (severity) {
+      case IncidentSeverity.Sev1: return 'severity-sev1'
+      case IncidentSeverity.Sev2: return 'severity-sev2'
+      case IncidentSeverity.Sev3: return 'severity-sev3'
+      case IncidentSeverity.Sev4: return 'severity-sev4'
+      default: return ''
+    }
+  }
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case IncidentStatus.Open: return 'status-open'
+      case IncidentStatus.Investigating: return 'status-investigating'
+      case IncidentStatus.Mitigated: return 'status-mitigated'
+      case IncidentStatus.Resolved: return 'status-resolved'
+      default: return ''
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString()
   }
 
   const hasRepoLinked = !!(service?.repo?.owner && service?.repo?.name)
@@ -197,7 +245,82 @@ export default function ServiceDetailPage() {
         </form>
       )}
 
-      <h3>Runbooks</h3>
+      <div className="section-header">
+        <h3>Incidents</h3>
+        <button className="btn btn-primary" onClick={() => setShowIncidentForm(!showIncidentForm)}>
+          {showIncidentForm ? 'Cancel' : '+ New Incident'}
+        </button>
+      </div>
+
+      {showIncidentForm && (
+        <form className="form" onSubmit={handleIncidentSubmit}>
+          <div className="form-group">
+            <label>Title</label>
+            <input
+              required
+              value={incidentFormData.title}
+              onChange={(e) => setIncidentFormData({ ...incidentFormData, title: e.target.value })}
+              placeholder="Brief description of the incident"
+            />
+          </div>
+          <div className="form-group">
+            <label>Severity</label>
+            <select
+              value={incidentFormData.severity}
+              onChange={(e) => setIncidentFormData({ ...incidentFormData, severity: e.target.value })}
+            >
+              <option value={IncidentSeverity.Sev1}>SEV1 - Critical</option>
+              <option value={IncidentSeverity.Sev2}>SEV2 - Major</option>
+              <option value={IncidentSeverity.Sev3}>SEV3 - Minor</option>
+              <option value={IncidentSeverity.Sev4}>SEV4 - Low</option>
+            </select>
+          </div>
+          <div className="form-actions">
+            <button type="button" className="btn btn-secondary" onClick={() => setShowIncidentForm(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Create Incident
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="incident-list">
+        {incidents.length === 0 ? (
+          <p>No incidents recorded.</p>
+        ) : (
+          incidents.map((incident) => (
+            <div key={incident.id} className="card incident-card">
+              <div className="incident-header">
+                <Link to={`/incidents/${incident.id}`} className="link incident-title">
+                  {incident.title}
+                </Link>
+                <div className="incident-badges">
+                  <span className={`badge ${getSeverityClass(incident.severity)}`}>
+                    {incident.severity.toUpperCase()}
+                  </span>
+                  <span className={`badge ${getStatusClass(incident.status)}`}>
+                    {incident.status}
+                  </span>
+                </div>
+              </div>
+              <div className="incident-meta">
+                <span>Started: {formatDate(incident.startedAt)}</span>
+                {incident.runbookTitle && (
+                  <span className="incident-runbook">
+                    Runbook: <Link to={`/runbooks/${incident.runbookId}`} className="link">{incident.runbookTitle}</Link>
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="section-header" style={{ marginTop: '2rem' }}>
+        <h3>Runbooks</h3>
+      </div>
       <div>
         {runbooks.length === 0 ? (
           <p>No runbooks yet. Create one to get started!</p>

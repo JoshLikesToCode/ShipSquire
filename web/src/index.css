@@ -397,3 +397,307 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Incident severity badges */
+.severity-sev1 {
+  background: #e74c3c !important;
+  color: white;
+}
+
+.severity-sev2 {
+  background: #e67e22 !important;
+  color: white;
+}
+
+.severity-sev3 {
+  background: #f1c40f !important;
+  color: #333;
+}
+
+.severity-sev4 {
+  background: #95a5a6 !important;
+  color: white;
+}
+
+/* Incident status badges */
+.status-open {
+  background: #e74c3c !important;
+  color: white;
+}
+
+.status-investigating {
+  background: #e67e22 !important;
+  color: white;
+}
+
+.status-mitigated {
+  background: #3498db !important;
+  color: white;
+}
+
+.status-resolved {
+  background: #27ae60 !important;
+  color: white;
+}
+
+/* Incident card styles */
+.incident-card {
+  padding: 1rem;
+}
+
+.incident-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.incident-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.incident-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.incident-badges .badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.incident-meta {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.incident-runbook {
+  color: #7f8c8d;
+}
+
+/* Incident detail page */
+.incident-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.incident-detail-title h2 {
+  margin: 0.5rem 0;
+  color: #2c3e50;
+}
+
+.back-link {
+  font-size: 0.9rem;
+}
+
+.status-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-status {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.incident-meta-detail {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+/* Quick links to runbook */
+.runbook-quick-links {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.runbook-quick-links h4 {
+  margin: 0 0 0.75rem 0;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quick-link {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+}
+
+/* Timeline entry form */
+.timeline-entry-form {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.timeline-entry-form h4 {
+  margin: 0 0 0.75rem 0;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.entry-type-select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 120px;
+}
+
+.entry-body-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Timeline feed */
+.timeline-section h4 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.no-entries {
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.timeline-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timeline-entry {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  border-left: 3px solid #95a5a6;
+}
+
+.timeline-entry.entry-type-note {
+  border-left-color: #3498db;
+}
+
+.timeline-entry.entry-type-action {
+  border-left-color: #27ae60;
+}
+
+.timeline-entry.entry-type-decision {
+  border-left-color: #9b59b6;
+}
+
+.timeline-entry.entry-type-observation {
+  border-left-color: #f39c12;
+}
+
+.timeline-entry-icon {
+  flex-shrink: 0;
+}
+
+.entry-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: white;
+  background: #95a5a6;
+}
+
+.entry-icon.note {
+  background: #3498db;
+}
+
+.entry-icon.action {
+  background: #27ae60;
+}
+
+.entry-icon.decision {
+  background: #9b59b6;
+}
+
+.entry-icon.observation {
+  background: #f39c12;
+}
+
+.timeline-entry-content {
+  flex: 1;
+}
+
+.timeline-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.entry-type-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #7f8c8d;
+}
+
+.entry-time {
+  font-size: 0.8rem;
+  color: #95a5a6;
+}
+
+.timeline-entry-body {
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+/* Form group select */
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: white;
+}

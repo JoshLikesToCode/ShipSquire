@@ -100,3 +100,71 @@ export interface UserResponse {
   createdAt: string
   updatedAt: string
 }
+
+// Incident types
+export interface IncidentResponse {
+  id: string
+  serviceId: string
+  runbookId?: string
+  runbookTitle?: string
+  title: string
+  severity: string
+  status: string
+  startedAt: string
+  endedAt?: string
+  summaryMarkdown?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface IncidentRequest {
+  title: string
+  severity: string
+  startedAt: string
+  summaryMarkdown?: string
+}
+
+export interface IncidentUpdateRequest {
+  title?: string
+  severity?: string
+  status?: string
+  endedAt?: string
+  summaryMarkdown?: string
+}
+
+// Timeline types
+export interface TimelineEntryResponse {
+  id: string
+  incidentId: string
+  entryType: string
+  occurredAt: string
+  bodyMarkdown: string
+  createdAt: string
+}
+
+export interface TimelineEntryRequest {
+  entryType: string
+  bodyMarkdown: string
+}
+
+// Constants
+export const IncidentStatus = {
+  Open: 'open',
+  Investigating: 'investigating',
+  Mitigated: 'mitigated',
+  Resolved: 'resolved',
+} as const
+
+export const IncidentSeverity = {
+  Sev1: 'sev1',
+  Sev2: 'sev2',
+  Sev3: 'sev3',
+  Sev4: 'sev4',
+} as const
+
+export const TimelineEntryType = {
+  Note: 'note',
+  Action: 'action',
+  Decision: 'decision',
+  Observation: 'observation',
+} as const
