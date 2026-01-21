@@ -92,11 +92,24 @@ public class IncidentService
             incident.Severity = request.Severity;
         }
 
-        if (request.Status != null)
+        // Status updates via PATCH should use TransitionStatusAsync for proper validation
+        // This is kept for backwards compatibility but enforces transitions
+        if (request.Status != null && request.Status != incident.Status)
         {
-            if (!IncidentStatus.IsValid(request.Status))
-                throw new ArgumentException($"Invalid status. Must be one of: {string.Join(", ", IncidentStatus.All)}");
+            if (!IncidentStatus.CanTransition(incident.Status, request.Status))
+            {
+                var validTransitions = IncidentStatus.GetValidTransitions(incident.Status);
+                throw new InvalidOperationException(
+                    $"Invalid status transition from '{incident.Status}' to '{request.Status}'. " +
+                    $"Valid transitions: {string.Join(", ", validTransitions)}");
+            }
             incident.Status = request.Status;
+
+            // Auto-set endedAt when resolved
+            if (request.Status == IncidentStatus.Resolved && incident.EndedAt == null)
+            {
+                incident.EndedAt = DateTimeOffset.UtcNow;
+            }
         }
 
         if (request.EndedAt != null)
@@ -110,6 +123,53 @@ public class IncidentService
 
         var updated = await _incidentRepository.GetByIdWithDetailsAsync(id, cancellationToken);
         return updated == null ? null : MapToResponse(updated);
+    }
+
+    public async Task<StatusTransitionResponse?> TransitionStatusAsync(Guid id, StatusTransitionRequest request, CancellationToken cancellationToken = default)
+    {
+        var incident = await _incidentRepository.GetByIdAndUserIdAsync(id, _currentUser.UserId, cancellationToken);
+        if (incident == null) return null;
+
+        var previousStatus = incident.Status;
+        var newStatus = request.Status;
+
+        if (!IncidentStatus.IsValid(newStatus))
+        {
+            throw new ArgumentException($"Invalid status. Must be one of: {string.Join(", ", IncidentStatus.All)}");
+        }
+
+        if (!IncidentStatus.CanTransition(previousStatus, newStatus))
+        {
+            var validTransitions = IncidentStatus.GetValidTransitions(previousStatus);
+            throw new InvalidOperationException(
+                $"Invalid status transition from '{previousStatus}' to '{newStatus}'. " +
+                $"Valid transitions: {string.Join(", ", validTransitions)}");
+        }
+
+        incident.Status = newStatus;
+        incident.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // Auto-set endedAt when resolved
+        if (newStatus == IncidentStatus.Resolved && incident.EndedAt == null)
+        {
+            incident.EndedAt = DateTimeOffset.UtcNow;
+        }
+
+        // Clear endedAt if reopening
+        if (newStatus == IncidentStatus.Open)
+        {
+            incident.EndedAt = null;
+        }
+
+        await _incidentRepository.UpdateAsync(incident, cancellationToken);
+
+        return new StatusTransitionResponse(
+            incident.Id,
+            previousStatus,
+            newStatus,
+            incident.EndedAt,
+            incident.UpdatedAt
+        );
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)

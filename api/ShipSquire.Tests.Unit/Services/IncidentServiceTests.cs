@@ -216,7 +216,7 @@ public class IncidentServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_WithInvalidStatus_ThrowsArgumentException()
+    public async Task UpdateAsync_WithInvalidStatusTransition_ThrowsInvalidOperationException()
     {
         // Arrange
         var incidentId = Guid.NewGuid();
@@ -233,10 +233,192 @@ public class IncidentServiceTests
             .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(incident);
 
-        var request = new IncidentUpdateRequest(Status: "invalid_status");
+        // Open cannot go directly to Resolved
+        var request = new IncidentUpdateRequest(Status: IncidentStatus.Resolved);
 
         // Act & Assert
         var action = () => _service.UpdateAsync(incidentId, request);
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Invalid status transition*");
+    }
+
+    [Fact]
+    public async Task TransitionStatusAsync_ValidTransition_ReturnsSuccessResponse()
+    {
+        // Arrange
+        var incidentId = Guid.NewGuid();
+        var incident = new Incident
+        {
+            Id = incidentId,
+            UserId = _userId,
+            ServiceId = _serviceId,
+            Title = "Test Incident",
+            Status = IncidentStatus.Open
+        };
+
+        _incidentRepoMock
+            .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(incident);
+
+        _incidentRepoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Incident>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var request = new StatusTransitionRequest(IncidentStatus.Investigating);
+
+        // Act
+        var result = await _service.TransitionStatusAsync(incidentId, request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.PreviousStatus.Should().Be(IncidentStatus.Open);
+        result.NewStatus.Should().Be(IncidentStatus.Investigating);
+    }
+
+    [Fact]
+    public async Task TransitionStatusAsync_InvalidTransition_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var incidentId = Guid.NewGuid();
+        var incident = new Incident
+        {
+            Id = incidentId,
+            UserId = _userId,
+            ServiceId = _serviceId,
+            Title = "Test Incident",
+            Status = IncidentStatus.Open
+        };
+
+        _incidentRepoMock
+            .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(incident);
+
+        // Open cannot go directly to Mitigated
+        var request = new StatusTransitionRequest(IncidentStatus.Mitigated);
+
+        // Act & Assert
+        var action = () => _service.TransitionStatusAsync(incidentId, request);
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Invalid status transition*");
+    }
+
+    [Fact]
+    public async Task TransitionStatusAsync_ToResolved_SetsEndedAtAutomatically()
+    {
+        // Arrange
+        var incidentId = Guid.NewGuid();
+        var incident = new Incident
+        {
+            Id = incidentId,
+            UserId = _userId,
+            ServiceId = _serviceId,
+            Title = "Test Incident",
+            Status = IncidentStatus.Investigating,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            EndedAt = null
+        };
+
+        _incidentRepoMock
+            .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(incident);
+
+        Incident? capturedIncident = null;
+        _incidentRepoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Incident>(), It.IsAny<CancellationToken>()))
+            .Callback<Incident, CancellationToken>((i, _) => capturedIncident = i)
+            .Returns(Task.CompletedTask);
+
+        var request = new StatusTransitionRequest(IncidentStatus.Resolved);
+
+        // Act
+        var result = await _service.TransitionStatusAsync(incidentId, request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.NewStatus.Should().Be(IncidentStatus.Resolved);
+        result.EndedAt.Should().NotBeNull();
+        capturedIncident!.EndedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransitionStatusAsync_Reopen_ClearsEndedAt()
+    {
+        // Arrange
+        var incidentId = Guid.NewGuid();
+        var incident = new Incident
+        {
+            Id = incidentId,
+            UserId = _userId,
+            ServiceId = _serviceId,
+            Title = "Test Incident",
+            Status = IncidentStatus.Resolved,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            EndedAt = DateTimeOffset.UtcNow.AddHours(-1)
+        };
+
+        _incidentRepoMock
+            .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(incident);
+
+        Incident? capturedIncident = null;
+        _incidentRepoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Incident>(), It.IsAny<CancellationToken>()))
+            .Callback<Incident, CancellationToken>((i, _) => capturedIncident = i)
+            .Returns(Task.CompletedTask);
+
+        var request = new StatusTransitionRequest(IncidentStatus.Open);
+
+        // Act
+        var result = await _service.TransitionStatusAsync(incidentId, request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.NewStatus.Should().Be(IncidentStatus.Open);
+        result.EndedAt.Should().BeNull();
+        capturedIncident!.EndedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task TransitionStatusAsync_WithNonOwnedIncident_ReturnsNull()
+    {
+        // Arrange
+        var incidentId = Guid.NewGuid();
+
+        _incidentRepoMock
+            .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Incident?)null);
+
+        var request = new StatusTransitionRequest(IncidentStatus.Investigating);
+
+        // Act
+        var result = await _service.TransitionStatusAsync(incidentId, request);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task TransitionStatusAsync_WithInvalidStatus_ThrowsArgumentException()
+    {
+        // Arrange
+        var incidentId = Guid.NewGuid();
+        var incident = new Incident
+        {
+            Id = incidentId,
+            UserId = _userId,
+            ServiceId = _serviceId,
+            Title = "Test Incident",
+            Status = IncidentStatus.Open
+        };
+
+        _incidentRepoMock
+            .Setup(r => r.GetByIdAndUserIdAsync(incidentId, _userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(incident);
+
+        var request = new StatusTransitionRequest("invalid_status");
+
+        // Act & Assert
+        var action = () => _service.TransitionStatusAsync(incidentId, request);
         await action.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Invalid status*");
     }

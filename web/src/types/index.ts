@@ -168,3 +168,45 @@ export const TimelineEntryType = {
   Decision: 'decision',
   Observation: 'observation',
 } as const
+
+// Status transition types
+export interface StatusTransitionRequest {
+  status: string
+}
+
+export interface StatusTransitionResponse {
+  id: string
+  previousStatus: string
+  newStatus: string
+  endedAt?: string
+  updatedAt: string
+}
+
+// Valid status transitions
+export const ValidStatusTransitions: Record<string, string[]> = {
+  [IncidentStatus.Open]: [IncidentStatus.Investigating],
+  [IncidentStatus.Investigating]: [IncidentStatus.Mitigated, IncidentStatus.Resolved],
+  [IncidentStatus.Mitigated]: [IncidentStatus.Resolved, IncidentStatus.Investigating],
+  [IncidentStatus.Resolved]: [IncidentStatus.Open],
+}
+
+// Postmortem types
+export interface PostmortemResponse {
+  id: string
+  incidentId: string
+  impactMarkdown?: string
+  rootCauseMarkdown?: string
+  detectionMarkdown?: string
+  resolutionMarkdown?: string
+  actionItemsMarkdown?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PostmortemUpdateRequest {
+  impactMarkdown?: string
+  rootCauseMarkdown?: string
+  detectionMarkdown?: string
+  resolutionMarkdown?: string
+  actionItemsMarkdown?: string
+}

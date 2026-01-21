@@ -124,4 +124,17 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+
+  // Status Transitions
+  transitionIncidentStatus: (incidentId: string, status: string) => fetchApi<any>(`/api/incidents/${incidentId}/status`, {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  }),
+
+  // Postmortem
+  getPostmortem: (incidentId: string) => fetchApi<any>(`/api/incidents/${incidentId}/postmortem`),
+  updatePostmortem: (incidentId: string, data: any) => fetchApi<any>(`/api/incidents/${incidentId}/postmortem`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
 }

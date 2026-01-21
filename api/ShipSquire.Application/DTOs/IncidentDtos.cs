@@ -29,3 +29,13 @@ public record IncidentUpdateRequest(
     DateTimeOffset? EndedAt = null,
     string? SummaryMarkdown = null
 );
+
+public record StatusTransitionRequest(string Status);
+
+public record StatusTransitionResponse(
+    Guid Id,
+    string PreviousStatus,
+    string NewStatus,
+    DateTimeOffset? EndedAt,
+    DateTimeOffset UpdatedAt
+);

@@ -190,9 +190,11 @@ describe('IncidentDetailPage', () => {
   })
 
   it('updates status when status button is clicked', async () => {
-    const updateIncident = vi.spyOn(api.api, 'updateIncident').mockResolvedValue({
-      ...mockIncident,
-      status: IncidentStatus.Mitigated,
+    const transitionStatus = vi.spyOn(api.api, 'transitionIncidentStatus').mockResolvedValue({
+      id: 'incident-1',
+      previousStatus: IncidentStatus.Investigating,
+      newStatus: IncidentStatus.Mitigated,
+      updatedAt: '2024-01-15T10:45:00Z',
     })
     vi.spyOn(api.api, 'getIncident').mockResolvedValue(mockIncident)
     vi.spyOn(api.api, 'getIncidentTimeline').mockResolvedValue([])
@@ -207,7 +209,7 @@ describe('IncidentDetailPage', () => {
     fireEvent.click(screen.getByText('Mark mitigated'))
 
     await waitFor(() => {
-      expect(updateIncident).toHaveBeenCalledWith('incident-1', { status: IncidentStatus.Mitigated })
+      expect(transitionStatus).toHaveBeenCalledWith('incident-1', IncidentStatus.Mitigated)
     })
   })
 

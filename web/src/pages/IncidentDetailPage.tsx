@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../services/api'
-import type { IncidentResponse, TimelineEntryResponse, TimelineEntryRequest, RunbookResponse } from '../types'
-import { IncidentStatus, IncidentSeverity, TimelineEntryType } from '../types'
+import type { IncidentResponse, TimelineEntryResponse, TimelineEntryRequest, RunbookResponse, PostmortemResponse } from '../types'
+import { IncidentStatus, IncidentSeverity, TimelineEntryType, ValidStatusTransitions } from '../types'
 
 export default function IncidentDetailPage() {
   const { incidentId } = useParams<{ incidentId: string }>()
@@ -17,6 +17,9 @@ export default function IncidentDetailPage() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const [postmortem, setPostmortem] = useState<PostmortemResponse | null>(null)
+  const [postmortemLoading, setPostmortemLoading] = useState(false)
+  const [showPostmortem, setShowPostmortem] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!incidentId) return
@@ -72,17 +75,30 @@ export default function IncidentDetailPage() {
     if (!incidentId || !incident) return
     try {
       setStatusUpdating(true)
-      const updates: any = { status: newStatus }
-      if (newStatus === IncidentStatus.Resolved && !incident.endedAt) {
-        updates.endedAt = new Date().toISOString()
-      }
-      await api.updateIncident(incidentId, updates)
+      setError(null)
+      await api.transitionIncidentStatus(incidentId, newStatus)
       loadData()
-    } catch (err) {
-      setError('Failed to update status')
+    } catch (err: any) {
+      const message = err?.message || 'Failed to update status'
+      setError(message)
       console.error(err)
     } finally {
       setStatusUpdating(false)
+    }
+  }
+
+  const loadPostmortem = async () => {
+    if (!incidentId) return
+    try {
+      setPostmortemLoading(true)
+      const pmData = await api.getPostmortem(incidentId)
+      setPostmortem(pmData)
+      setShowPostmortem(true)
+    } catch (err) {
+      // Postmortem may not exist yet
+      setPostmortem(null)
+    } finally {
+      setPostmortemLoading(false)
     }
   }
 
@@ -121,18 +137,7 @@ export default function IncidentDetailPage() {
   }
 
   const getNextStatusOptions = (currentStatus: string) => {
-    switch (currentStatus) {
-      case IncidentStatus.Open:
-        return [IncidentStatus.Investigating]
-      case IncidentStatus.Investigating:
-        return [IncidentStatus.Mitigated, IncidentStatus.Resolved]
-      case IncidentStatus.Mitigated:
-        return [IncidentStatus.Resolved, IncidentStatus.Investigating]
-      case IncidentStatus.Resolved:
-        return [IncidentStatus.Open]
-      default:
-        return []
-    }
+    return ValidStatusTransitions[currentStatus] || []
   }
 
   if (loading) return <div className="loading">Loading...</div>
@@ -257,6 +262,60 @@ export default function IncidentDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Postmortem Section - only for resolved incidents */}
+      {incident.status === IncidentStatus.Resolved && (
+        <div className="postmortem-section">
+          <div className="section-header">
+            <h4>Postmortem</h4>
+            {!showPostmortem && (
+              <button
+                className="btn btn-secondary"
+                onClick={loadPostmortem}
+                disabled={postmortemLoading}
+              >
+                {postmortemLoading ? 'Loading...' : 'View Postmortem'}
+              </button>
+            )}
+          </div>
+
+          {showPostmortem && postmortem && (
+            <div className="postmortem-content">
+              <div className="postmortem-card">
+                <h5>Impact</h5>
+                <div className="postmortem-markdown">{postmortem.impactMarkdown}</div>
+              </div>
+
+              <div className="postmortem-card">
+                <h5>Root Cause Analysis</h5>
+                <div className="postmortem-markdown">{postmortem.rootCauseMarkdown}</div>
+              </div>
+
+              <div className="postmortem-card">
+                <h5>Detection</h5>
+                <div className="postmortem-markdown">{postmortem.detectionMarkdown}</div>
+              </div>
+
+              <div className="postmortem-card">
+                <h5>Resolution</h5>
+                <div className="postmortem-markdown">{postmortem.resolutionMarkdown}</div>
+              </div>
+
+              <div className="postmortem-card">
+                <h5>Action Items</h5>
+                <div className="postmortem-markdown">{postmortem.actionItemsMarkdown}</div>
+              </div>
+
+              <p className="postmortem-note">
+                Generated {new Date(postmortem.createdAt).toLocaleDateString()}
+                {postmortem.updatedAt !== postmortem.createdAt &&
+                  ` · Last updated ${new Date(postmortem.updatedAt).toLocaleDateString()}`
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

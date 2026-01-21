@@ -61,10 +61,37 @@ public static class IncidentEndpoints
             {
                 return Results.BadRequest(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
         })
         .WithName("UpdateIncident")
         .WithTags("Incidents")
         .Produces<IncidentResponse>(200)
+        .Produces(400)
+        .Produces(404);
+
+        // Transition incident status
+        app.MapPost("/api/incidents/{incidentId:guid}/status", async (Guid incidentId, StatusTransitionRequest request, IncidentService service) =>
+        {
+            try
+            {
+                var result = await service.TransitionStatusAsync(incidentId, request);
+                return result == null ? Results.NotFound() : Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+        })
+        .WithName("TransitionIncidentStatus")
+        .WithTags("Incidents")
+        .Produces<StatusTransitionResponse>(200)
         .Produces(400)
         .Produces(404);
 
