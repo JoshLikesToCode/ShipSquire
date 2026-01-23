@@ -389,7 +389,9 @@ body {
 /* Header actions */
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 /* Disabled button state */

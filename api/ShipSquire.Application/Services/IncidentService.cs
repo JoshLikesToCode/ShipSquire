@@ -1,4 +1,5 @@
 using ShipSquire.Application.DTOs;
+using ShipSquire.Application.Exceptions;
 using ShipSquire.Application.Interfaces;
 using ShipSquire.Domain.Entities;
 using ShipSquire.Domain.Enums;
@@ -52,7 +53,7 @@ public class IncidentService
         // Validate severity
         if (!IncidentSeverity.IsValid(request.Severity))
         {
-            throw new ArgumentException($"Invalid severity. Must be one of: {string.Join(", ", IncidentSeverity.All)}");
+            throw new ValidationException("severity", $"Invalid severity '{request.Severity}'. Valid severities: {string.Join(", ", IncidentSeverity.All)}.");
         }
 
         // Auto-attach the latest runbook (published preferred, draft fallback)
@@ -88,7 +89,7 @@ public class IncidentService
         if (request.Severity != null)
         {
             if (!IncidentSeverity.IsValid(request.Severity))
-                throw new ArgumentException($"Invalid severity. Must be one of: {string.Join(", ", IncidentSeverity.All)}");
+                throw new ValidationException("severity", $"Invalid severity '{request.Severity}'. Valid severities: {string.Join(", ", IncidentSeverity.All)}.");
             incident.Severity = request.Severity;
         }
 
@@ -99,9 +100,7 @@ public class IncidentService
             if (!IncidentStatus.CanTransition(incident.Status, request.Status))
             {
                 var validTransitions = IncidentStatus.GetValidTransitions(incident.Status);
-                throw new InvalidOperationException(
-                    $"Invalid status transition from '{incident.Status}' to '{request.Status}'. " +
-                    $"Valid transitions: {string.Join(", ", validTransitions)}");
+                throw new InvalidStatusTransitionException(incident.Status, request.Status, validTransitions);
             }
             incident.Status = request.Status;
 
@@ -135,15 +134,13 @@ public class IncidentService
 
         if (!IncidentStatus.IsValid(newStatus))
         {
-            throw new ArgumentException($"Invalid status. Must be one of: {string.Join(", ", IncidentStatus.All)}");
+            throw new ValidationException("status", $"Invalid status '{newStatus}'. Valid statuses: {string.Join(", ", IncidentStatus.All)}.");
         }
 
         if (!IncidentStatus.CanTransition(previousStatus, newStatus))
         {
             var validTransitions = IncidentStatus.GetValidTransitions(previousStatus);
-            throw new InvalidOperationException(
-                $"Invalid status transition from '{previousStatus}' to '{newStatus}'. " +
-                $"Valid transitions: {string.Join(", ", validTransitions)}");
+            throw new InvalidStatusTransitionException(previousStatus, newStatus, validTransitions);
         }
 
         incident.Status = newStatus;

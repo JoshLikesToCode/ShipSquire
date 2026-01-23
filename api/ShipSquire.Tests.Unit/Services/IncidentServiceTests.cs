@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using ShipSquire.Application.DTOs;
+using ShipSquire.Application.Exceptions;
 using ShipSquire.Application.Interfaces;
 using ShipSquire.Application.Services;
 using ShipSquire.Domain.Entities;
@@ -120,7 +121,7 @@ public class IncidentServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_WithInvalidSeverity_ThrowsArgumentException()
+    public async Task CreateAsync_WithInvalidSeverity_ThrowsValidationException()
     {
         // Arrange
         var mockService = new Service { Id = _serviceId, UserId = _userId, Name = "Test Service" };
@@ -132,7 +133,7 @@ public class IncidentServiceTests
 
         // Act & Assert
         var action = () => _service.CreateAsync(_serviceId, request);
-        await action.Should().ThrowAsync<ArgumentException>()
+        await action.Should().ThrowAsync<ValidationException>()
             .WithMessage("*Invalid severity*");
     }
 
@@ -216,7 +217,7 @@ public class IncidentServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_WithInvalidStatusTransition_ThrowsInvalidOperationException()
+    public async Task UpdateAsync_WithInvalidStatusTransition_ThrowsInvalidStatusTransitionException()
     {
         // Arrange
         var incidentId = Guid.NewGuid();
@@ -238,8 +239,8 @@ public class IncidentServiceTests
 
         // Act & Assert
         var action = () => _service.UpdateAsync(incidentId, request);
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Invalid status transition*");
+        await action.Should().ThrowAsync<InvalidStatusTransitionException>()
+            .WithMessage("*Cannot change status*");
     }
 
     [Fact]
@@ -276,7 +277,7 @@ public class IncidentServiceTests
     }
 
     [Fact]
-    public async Task TransitionStatusAsync_InvalidTransition_ThrowsInvalidOperationException()
+    public async Task TransitionStatusAsync_InvalidTransition_ThrowsInvalidStatusTransitionException()
     {
         // Arrange
         var incidentId = Guid.NewGuid();
@@ -298,8 +299,8 @@ public class IncidentServiceTests
 
         // Act & Assert
         var action = () => _service.TransitionStatusAsync(incidentId, request);
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Invalid status transition*");
+        await action.Should().ThrowAsync<InvalidStatusTransitionException>()
+            .WithMessage("*Cannot change status*");
     }
 
     [Fact]
@@ -398,7 +399,7 @@ public class IncidentServiceTests
     }
 
     [Fact]
-    public async Task TransitionStatusAsync_WithInvalidStatus_ThrowsArgumentException()
+    public async Task TransitionStatusAsync_WithInvalidStatus_ThrowsValidationException()
     {
         // Arrange
         var incidentId = Guid.NewGuid();
@@ -419,7 +420,7 @@ public class IncidentServiceTests
 
         // Act & Assert
         var action = () => _service.TransitionStatusAsync(incidentId, request);
-        await action.Should().ThrowAsync<ArgumentException>()
+        await action.Should().ThrowAsync<ValidationException>()
             .WithMessage("*Invalid status*");
     }
 }

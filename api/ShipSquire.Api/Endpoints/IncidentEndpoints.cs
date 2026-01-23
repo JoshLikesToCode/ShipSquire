@@ -1,4 +1,5 @@
 using ShipSquire.Application.DTOs;
+using ShipSquire.Application.Exceptions;
 using ShipSquire.Application.Services;
 
 namespace ShipSquire.Api.Endpoints;
@@ -24,12 +25,16 @@ public static class IncidentEndpoints
             {
                 var result = await service.CreateAsync(serviceId, request);
                 return result == null
-                    ? Results.NotFound(new { message = "Service not found" })
+                    ? Results.NotFound(new { message = "Service not found. Please check the service ID and try again." })
                     : Results.Created($"/api/incidents/{result.Id}", result);
+            }
+            catch (ValidationException ex)
+            {
+                return Results.BadRequest(new { code = ex.ErrorCode, field = ex.FieldName, message = ex.UserMessage });
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { code = "VALIDATION_ERROR", message = ex.Message });
             }
         })
         .WithName("CreateIncident")
@@ -55,15 +60,27 @@ public static class IncidentEndpoints
             try
             {
                 var result = await service.UpdateAsync(incidentId, request);
-                return result == null ? Results.NotFound() : Results.Ok(result);
+                return result == null
+                    ? Results.NotFound(new { message = "Incident not found." })
+                    : Results.Ok(result);
+            }
+            catch (InvalidStatusTransitionException ex)
+            {
+                return Results.BadRequest(new {
+                    code = ex.ErrorCode,
+                    message = ex.UserMessage,
+                    currentStatus = ex.CurrentStatus,
+                    requestedStatus = ex.RequestedStatus,
+                    validTransitions = ex.ValidTransitions
+                });
+            }
+            catch (ValidationException ex)
+            {
+                return Results.BadRequest(new { code = ex.ErrorCode, field = ex.FieldName, message = ex.UserMessage });
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { code = "VALIDATION_ERROR", message = ex.Message });
             }
         })
         .WithName("UpdateIncident")
@@ -78,15 +95,27 @@ public static class IncidentEndpoints
             try
             {
                 var result = await service.TransitionStatusAsync(incidentId, request);
-                return result == null ? Results.NotFound() : Results.Ok(result);
+                return result == null
+                    ? Results.NotFound(new { message = "Incident not found." })
+                    : Results.Ok(result);
+            }
+            catch (InvalidStatusTransitionException ex)
+            {
+                return Results.BadRequest(new {
+                    code = ex.ErrorCode,
+                    message = ex.UserMessage,
+                    currentStatus = ex.CurrentStatus,
+                    requestedStatus = ex.RequestedStatus,
+                    validTransitions = ex.ValidTransitions
+                });
+            }
+            catch (ValidationException ex)
+            {
+                return Results.BadRequest(new { code = ex.ErrorCode, field = ex.FieldName, message = ex.UserMessage });
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { code = "VALIDATION_ERROR", message = ex.Message });
             }
         })
         .WithName("TransitionIncidentStatus")
@@ -104,6 +133,20 @@ public static class IncidentEndpoints
         .WithName("DeleteIncident")
         .WithTags("Incidents")
         .Produces(204)
+        .Produces(404);
+
+        // Export incident as Markdown
+        app.MapGet("/api/incidents/{incidentId:guid}/export", async (Guid incidentId, MarkdownExportService exportService) =>
+        {
+            var result = await exportService.ExportIncidentAsync(incidentId);
+            if (result == null)
+                return Results.NotFound(new { message = "Incident not found" });
+
+            return Results.Text(result.Content, result.ContentType, System.Text.Encoding.UTF8);
+        })
+        .WithName("ExportIncident")
+        .WithTags("Incidents")
+        .Produces<string>(200, "text/markdown")
         .Produces(404);
     }
 }

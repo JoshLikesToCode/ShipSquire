@@ -189,8 +189,9 @@ public class PostmortemEndpointsTests : IClassFixture<TestWebApplicationFactory>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-        error!["message"].Should().Contain("Invalid status transition");
+        var errorJson = await response.Content.ReadAsStringAsync();
+        errorJson.Should().Contain("Cannot change status");
+        errorJson.Should().Contain("INVALID_STATUS_TRANSITION");
     }
 
     [Fact]

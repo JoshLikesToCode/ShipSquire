@@ -76,6 +76,7 @@ builder.Services.AddScoped<RunbookVariableService>();
 builder.Services.AddScoped<IncidentService>();
 builder.Services.AddScoped<TimelineEntryService>();
 builder.Services.AddScoped<PostmortemService>();
+builder.Services.AddScoped<MarkdownExportService>();
 builder.Services.AddScoped<IRunbookDraftGenerator, RunbookDraftGenerator>();
 
 // Auth Services

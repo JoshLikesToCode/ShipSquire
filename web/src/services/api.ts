@@ -137,4 +137,27 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
+
+  // Export
+  exportIncident: async (incidentId: string): Promise<{ content: string; filename: string }> => {
+    const url = `${API_BASE_URL}/api/incidents/${incidentId}/export`
+    const response = await fetch(url, {
+      headers: {
+        'X-User-Email': USER_EMAIL,
+      },
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status} ${response.statusText}`)
+    }
+    const content = await response.text()
+    // Extract filename from Content-Disposition header if available, otherwise use default
+    const disposition = response.headers.get('Content-Disposition')
+    let filename = `incident-${incidentId}.md`
+    if (disposition) {
+      const match = disposition.match(/filename="?([^"]+)"?/)
+      if (match) filename = match[1]
+    }
+    return { content, filename }
+  },
 }

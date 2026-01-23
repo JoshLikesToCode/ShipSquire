@@ -20,6 +20,7 @@ export default function IncidentDetailPage() {
   const [postmortem, setPostmortem] = useState<PostmortemResponse | null>(null)
   const [postmortemLoading, setPostmortemLoading] = useState(false)
   const [showPostmortem, setShowPostmortem] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!incidentId) return
@@ -79,7 +80,21 @@ export default function IncidentDetailPage() {
       await api.transitionIncidentStatus(incidentId, newStatus)
       loadData()
     } catch (err: any) {
-      const message = err?.message || 'Failed to update status'
+      // Try to parse API error response for better messages
+      let message = 'Failed to update status'
+      if (err?.message) {
+        // Check if it's a JSON error response
+        try {
+          const errorMatch = err.message.match(/API error: \d+ (.+)/)
+          if (errorMatch) {
+            message = `Status change failed: ${errorMatch[1]}`
+          } else {
+            message = err.message
+          }
+        } catch {
+          message = err.message
+        }
+      }
       setError(message)
       console.error(err)
     } finally {
@@ -99,6 +114,32 @@ export default function IncidentDetailPage() {
       setPostmortem(null)
     } finally {
       setPostmortemLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!incidentId) return
+    try {
+      setExporting(true)
+      setError(null)
+      const { content, filename } = await api.exportIncident(incidentId)
+
+      // Create and trigger download
+      const blob = new Blob([content], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      const message = err?.message || 'Failed to export incident'
+      setError(message)
+      console.error(err)
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -164,18 +205,29 @@ export default function IncidentDetailPage() {
           </div>
         </div>
 
-        {/* Status actions */}
-        <div className="status-actions">
-          {nextStatuses.map((status) => (
-            <button
-              key={status}
-              className={`btn btn-status ${getStatusClass(status)}`}
-              onClick={() => handleStatusChange(status)}
-              disabled={statusUpdating}
-            >
-              Mark {status}
-            </button>
-          ))}
+        {/* Header actions */}
+        <div className="header-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={handleExport}
+            disabled={exporting}
+            title="Export incident as Markdown"
+          >
+            {exporting ? 'Exporting...' : 'Export'}
+          </button>
+          {/* Status actions */}
+          <div className="status-actions">
+            {nextStatuses.map((status) => (
+              <button
+                key={status}
+                className={`btn btn-status ${getStatusClass(status)}`}
+                onClick={() => handleStatusChange(status)}
+                disabled={statusUpdating}
+              >
+                Mark {status}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

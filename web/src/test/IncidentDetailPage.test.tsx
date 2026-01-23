@@ -258,4 +258,44 @@ describe('IncidentDetailPage', () => {
       expect(screen.getByText('O')).toBeInTheDocument() // Observation icon
     })
   })
+
+  it('shows export button', async () => {
+    vi.spyOn(api.api, 'getIncident').mockResolvedValue(mockIncident)
+    vi.spyOn(api.api, 'getIncidentTimeline').mockResolvedValue([])
+    vi.spyOn(api.api, 'getRunbook').mockResolvedValue(mockRunbook)
+
+    renderWithRouter('incident-1')
+
+    await waitFor(() => {
+      expect(screen.getByText('Export')).toBeInTheDocument()
+    })
+  })
+
+  it('calls export API when export button is clicked', async () => {
+    const exportIncident = vi.spyOn(api.api, 'exportIncident').mockResolvedValue({
+      content: '# Incident Report',
+      filename: 'incident-2024-01-15-api-outage.md'
+    })
+    vi.spyOn(api.api, 'getIncident').mockResolvedValue(mockIncident)
+    vi.spyOn(api.api, 'getIncidentTimeline').mockResolvedValue([])
+    vi.spyOn(api.api, 'getRunbook').mockResolvedValue(mockRunbook)
+
+    // Mock URL.createObjectURL and URL.revokeObjectURL
+    const mockCreateObjectURL = vi.fn(() => 'blob:test')
+    const mockRevokeObjectURL = vi.fn()
+    global.URL.createObjectURL = mockCreateObjectURL
+    global.URL.revokeObjectURL = mockRevokeObjectURL
+
+    renderWithRouter('incident-1')
+
+    await waitFor(() => {
+      expect(screen.getByText('Export')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Export'))
+
+    await waitFor(() => {
+      expect(exportIncident).toHaveBeenCalledWith('incident-1')
+    })
+  })
 })

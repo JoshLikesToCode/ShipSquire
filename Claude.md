@@ -50,13 +50,15 @@ This document serves as the project operating manual for AI-assisted development
 ### Layer Responsibilities
 
 **Domain (`ShipSquire.Domain`)**
-- Entities: User, Service, Runbook, RunbookSection, RunbookVariable, Incident, etc.
+- Entities: User, Service, Runbook, RunbookSection, RunbookVariable, Incident, IncidentTimelineEntry, Postmortem
+- Enums: IncidentStatus, IncidentSeverity, TimelineEntryType
 - BaseEntity: Common Id, CreatedAt, UpdatedAt
-- Interfaces: IRepository, IUserRepository, IServiceRepository, IRunbookRepository
+- Interfaces: IRepository, IUserRepository, IServiceRepository, IRunbookRepository, IIncidentRepository, ITimelineEntryRepository, IPostmortemRepository
 
 **Application (`ShipSquire.Application`)**
-- DTOs: Request/Response records (ServiceRequest, ServiceResponse, etc.)
-- Services: ServiceService, RunbookService, RunbookSectionService, RunbookVariableService
+- DTOs: Request/Response records (ServiceRequest, ServiceResponse, IncidentRequest, TimelineEntryRequest, PostmortemResponse, etc.)
+- Services: ServiceService, RunbookService, RunbookSectionService, RunbookVariableService, IncidentService, TimelineEntryService, PostmortemService, MarkdownExportService
+- Exceptions: DomainException, InvalidStatusTransitionException, ValidationException, NotFoundException
 - ICurrentUser: Abstraction for current authenticated user
 
 **Infrastructure (`ShipSquire.Infrastructure`)**
@@ -452,11 +454,141 @@ interface ConfirmModalProps {
 - `.modal-actions` - Flex container for modal action buttons
 - `.badge-generated` / `.badge-manual` - Origin badges for runbooks
 
-## Next Steps (Week 2+)
+## Incident Management
 
-- Enhanced incident management UI
-- Timeline entries for incidents
-- Postmortem workflows
+### Incident Lifecycle
+
+**Status Flow:**
+```
+Open → Investigating → Mitigated → Resolved
+                  ↓           ↓
+              Resolved    Investigating
+                  ↑
+                Open (reopen)
+```
+
+**Valid Status Transitions:**
+| Current Status | Valid Next Statuses |
+|----------------|---------------------|
+| `open` | `investigating` |
+| `investigating` | `mitigated`, `resolved` |
+| `mitigated` | `resolved`, `investigating` |
+| `resolved` | `open` (reopen) |
+
+**Automatic Behaviors:**
+- When transitioning to `resolved`, `endedAt` is automatically set to current time
+- When reopening (transitioning to `open`), `endedAt` is cleared
+- Status transitions are validated; invalid transitions return 400 Bad Request
+
+**API Endpoints:**
+- `POST /api/incidents/{incidentId}/status` - Transition status (preferred method)
+- `PATCH /api/incidents/{incidentId}` - Update incident (also supports status changes)
+
+### Timeline Entries
+
+Timeline entries are append-only and cannot be edited or deleted once created.
+
+**Entry Types:**
+| Type | Icon | Purpose |
+|------|------|---------|
+| `note` | 📝 | General observations or updates |
+| `action` | ⚡ | Actions taken during incident |
+| `decision` | 🎯 | Key decisions made |
+| `observation` | 👁️ | What was observed/noticed |
+
+**Rules:**
+- `occurredAt` is set server-side to ensure chronological accuracy
+- `bodyMarkdown` is required and cannot be empty
+- Entries are returned in chronological order
+
+**API Endpoints:**
+- `GET /api/incidents/{incidentId}/timeline` - List timeline entries
+- `POST /api/incidents/{incidentId}/timeline` - Add new entry
+
+### Postmortem Structure
+
+Postmortems are auto-generated when an incident is resolved and the postmortem is first accessed.
+
+**Auto-Generation Logic:**
+- **Impact section**: Pulls from incident summary, severity, and duration
+- **Detection section**: Aggregates `observation` timeline entries
+- **Root Cause section**: Aggregates `decision` timeline entries
+- **Resolution section**: Aggregates `action` timeline entries + runbook reference
+- **Action Items section**: Template for follow-up tasks
+
+**Sections:**
+| Section | Purpose |
+|---------|---------|
+| `impactMarkdown` | Customer and business impact |
+| `rootCauseMarkdown` | 5 Whys or similar analysis |
+| `detectionMarkdown` | How incident was detected |
+| `resolutionMarkdown` | Steps taken to resolve |
+| `actionItemsMarkdown` | Follow-up action items table |
+
+**Rules:**
+- Postmortems are only auto-generated for resolved incidents
+- GET on non-resolved incident returns 404
+- PATCH creates postmortem if it doesn't exist
+- All sections are editable after generation
+
+**API Endpoints:**
+- `GET /api/incidents/{incidentId}/postmortem` - Get/auto-generate postmortem
+- `PATCH /api/incidents/{incidentId}/postmortem` - Update postmortem sections
+
+### Incident Export
+
+Export generates a shareable Markdown document containing:
+1. Incident overview table (service, severity, status, timestamps, duration)
+2. Incident summary (if present)
+3. Full timeline with entry types and timestamps
+4. Postmortem sections (if incident is resolved and has postmortem)
+
+**Security:**
+- Export automatically sanitizes potential secrets:
+  - API keys and tokens (`api_key=`, `token:`, etc.)
+  - AWS access keys (`AKIA...`)
+  - JWT tokens
+- Filenames are sanitized to remove special characters
+
+**API Endpoint:**
+- `GET /api/incidents/{incidentId}/export` - Returns markdown file
+
+## Error Handling
+
+### Structured Error Responses
+
+API errors return structured JSON with helpful information:
+
+```json
+{
+  "code": "INVALID_STATUS_TRANSITION",
+  "message": "Cannot change status from 'open' to 'mitigated'. Valid next statuses: investigating.",
+  "currentStatus": "open",
+  "requestedStatus": "mitigated",
+  "validTransitions": ["investigating"]
+}
+```
+
+**Error Codes:**
+| Code | Description |
+|------|-------------|
+| `INVALID_STATUS_TRANSITION` | Status change not allowed |
+| `VALIDATION_ERROR` | Field validation failed |
+| `NOT_FOUND` | Resource not found |
+
+### Custom Exception Types
+
+Located in `ShipSquire.Application/Exceptions/`:
+- `DomainException` - Base exception with `ErrorCode` and `UserMessage`
+- `InvalidStatusTransitionException` - For status machine violations
+- `ValidationException` - For field validation errors
+- `NotFoundException` - For missing resources
+
+## Next Steps (Week 3+)
+
+- Incident templates
+- Recurring incident detection
+- SLA tracking
 
 ## Notes for AI Assistants
 
