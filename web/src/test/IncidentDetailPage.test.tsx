@@ -283,8 +283,11 @@ describe('IncidentDetailPage', () => {
     // Mock URL.createObjectURL and URL.revokeObjectURL
     const mockCreateObjectURL = vi.fn(() => 'blob:test')
     const mockRevokeObjectURL = vi.fn()
-    global.URL.createObjectURL = mockCreateObjectURL
-    global.URL.revokeObjectURL = mockRevokeObjectURL
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: mockCreateObjectURL,
+      revokeObjectURL: mockRevokeObjectURL
+    })
 
     renderWithRouter('incident-1')
 
@@ -297,5 +300,7 @@ describe('IncidentDetailPage', () => {
     await waitFor(() => {
       expect(exportIncident).toHaveBeenCalledWith('incident-1')
     })
+
+    vi.unstubAllGlobals()
   })
 })
